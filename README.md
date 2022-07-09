@@ -31,4 +31,6 @@ On a more pratical level, it allows time-split clustering.
 
 ## References
 
-    [1] : Birant, Derya, and Alp Kut. "ST-DBSCAN: An algorithm for clustering spatial–temporal data." Data & Knowledge Engineering 60.1 (2007): 208-221.
+    [1] : Birant, Derya, and Alp Kut. 
+    "ST-DBSCAN: An algorithm for clustering spatial–temporal data." 
+    Data & Knowledge Engineering 60.1 (2007): 208-221.
