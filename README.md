@@ -22,9 +22,9 @@ WIP
 Object tracking and domain expertise allows people to build event recognition software. Yet, in many situations, object tracking cannot be achieved because object visual obstruction, low sampling frequency, low object recognition reliability. 
 
 c4der offers a solution tailored for event recognition in 2D videos. 
-Its core is Density Based for Spatial Clustering Applications with Noise (DBSCAN)combined with time dimensionnality, adaptable cluster density distance (see [1]), non-spatial features. 
+Its core is Density Based for Spatial Clustering Applications with Noise (DBSCAN)combined with time dimensionnality and non-spatial features. 
 
-It goes further by unveiling stochastic cluster propagation using a Gaussian kernel and minimal intra-cluster variance threshold. 
+It goes further by unveiling stochastic cluster propagation using anexponential kernel, minimal intra-cluster variance threshold. 
 
 On a more pratical level, it allows time-split clustering.
 

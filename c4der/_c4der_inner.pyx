@@ -1,5 +1,7 @@
 from libcpp.vector cimport vector
 cimport numpy as cnp
+import pyximport
+pyximport.install()
 
 cnp.import_array()
 
