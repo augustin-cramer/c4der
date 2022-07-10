@@ -2,6 +2,7 @@ from typing import List, Optional, Union
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
 from sklearn.neighbors import NearestNeighbors
+from ._c4der_inner import c4der_inner
 
 
 class c4der:
@@ -108,4 +109,7 @@ class c4der:
         # ...
 
         #Cluster diffusion
+        dbscan_inner(core_samples, neighborhoods, labels)
+
+
 
