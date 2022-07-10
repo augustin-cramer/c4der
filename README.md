@@ -28,6 +28,7 @@ It goes further by unveiling stochastic cluster propagation using a Gaussian ker
 
 On a more pratical level, it allows time-split clustering.
 
+It is based on scikit-learn efficient implementation of DBSCAN.
 
 ## References
 
