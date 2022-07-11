@@ -39,7 +39,8 @@ if __name__ == "__main__":
     ###################################
 
     converter = standardize_cluster_format((df.groupby("labels").count().X > 20))
-
+    # Maybe look at cluster time_span instead of nb of points
+    
     df["labels"] = df["labels"].apply(lambda x: converter[x])
 
     df = df[df.labels != -1]  # Get rid of the noise
