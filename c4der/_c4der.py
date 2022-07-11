@@ -1,13 +1,16 @@
+
+from datetime import datetime, timedelta
+from lib2to3.pytree import convert
+from time import time
 from typing import List, Optional, Union
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
 from sklearn.neighbors import NearestNeighbors
 
-
 def kernel(Z, eps1, eps2, ar=0.6) -> np.ndarray:
     Z -= eps1
-    sigma = (eps1 - eps2) / np.log(ar)
-    return np.exp(-Z / sigma)
+    sigma = ((eps1 - eps2) ** 2) / np.log(ar)
+    return np.exp((Z**2) / sigma)
 
 
 class c4der:
@@ -63,8 +66,6 @@ class c4der:
         if X_spatial.shape[1] != 2:
             raise ValueError("X_spatial must have two coordinates per row")
 
-        n_features = X_non_spatial.shape[1] if X_non_spatial is not None else 0
-
         time_dist = pdist(X_temporal.reshape(n_samples, 1), metric="euclidean")
         spatial_weighted_dist = np.sqrt(2) * pdist(
             X_spatial,
@@ -92,7 +93,7 @@ class c4der:
                 assert (
                     type(self.non_spatial_epss) is float
                 ), "Number of non spatial eps and actual inputed non spatial variables do not match"
-                non_spatial_dist = pdist(X_non_spatial, metric="euclidean")
+                non_spatial_dist = pdist(X_non_spatial.reshape(n_samples, 1), metric="braycurtis")
                 filtered_dist = np.where(
                     non_spatial_dist <= self.non_spatial_epss,
                     filtered_dist,
@@ -131,7 +132,6 @@ class c4der:
                             np.random.uniform(size=len(kernel_values)) > kernel_values
                         )
                     ]
-                    print(kernel_values)
                     neighborhood = [el for el in neighborhood if el not in rejected]
 
         n_neighbors = np.array([len(neighbors) for neighbors in neighborhoods])
@@ -170,17 +170,40 @@ class c4der:
 
         return self
 
+    def get_params(self) -> dict :
+        return vars(self)
+
 
 if __name__ == "__main__":
     import pandas as pd
     import plotly.express as px
 
-    df = pd.read_csv("../deep-hair/3D.csv", index_col=0)
-    # df = df[df["T"] < 3320]
+    df = pd.read_csv("../deep-hair/3D_500_area.csv", index_col=0)
+    df.Area = np.sqrt(df.Area)
+    #df = df[df["T"] < 3320]
 
-    c4der_scan = c4der(50, -1, 70, 300, 20, spatial_weight_on_x=0.1)
-    c4der_scan.fit(df[["X", "Y"]].to_numpy(), df["T"].to_numpy())
+    c4der_scan = c4der(
+        50, -1, 70, 240, 10, spatial_weight_on_x=.2, 
+        non_spatial_epss=0.1
+    )
+    c4der_scan.fit(
+        df[["X", "Y"]].to_numpy(),
+        df["T"].to_numpy(),
+        X_non_spatial=df["Area"].to_numpy(),
+    )
+    start = datetime(year = 2022, month = 7,day=2, hour=9, minute=1)
+    df.loc[:,"T"] = df['T'].apply(lambda x: start + timedelta(seconds=x) )
     df["labels"] = c4der_scan.labels_
+    converter = (df.groupby('labels').count().X > 20)
+    i=0
+    for k,v in converter.items():
+        if v and k!= -1 :
+            converter[k] = i
+            i+=1
+        else :
+            converter[k]= -1
+    df['labels'] = df['labels'].apply(lambda x: converter[x])
+
     df = df[df.labels != -1]
     fig = px.scatter_3d(
         z=df["T"],
@@ -188,5 +211,10 @@ if __name__ == "__main__":
         x=df["Y"],
         color=df["labels"],
     )
-    fig.show()
-    print(df.labels.unique())
+    #fig.show()
+    print(f'Nombre de clients détectés :{len(df.labels.unique())}')
+    #df.loc[:,'T'] = df.loc[:,'T'].astype(np.datetime64)
+    for cluster in df.labels.unique():
+        start = min(df[df.labels==cluster]['T'])
+        end = max(df[df.labels==cluster]['T'])
+        print(f'{start.strftime("%H:%M")} -->  {end.strftime("%H:%M")}')

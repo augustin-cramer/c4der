@@ -2,12 +2,12 @@ import numpy as np
 import plotly.graph_objects as go
 
 
-def f(x, y, eps1=2, eps2 = 5,ar=0.999, lambd=0.5):
+def f(x, y, eps1=2.5, eps2=3.5, ar=0.6, lambd=0.3):
     Z = np.sqrt(lambd * (x**2) + (1 - lambd) * (y**2)) - eps1
     Z[Z < 0] = 0.0
-    Z[Z-(eps2-eps1)>0] = np.inf
-    sigma = (eps1-eps2)/np.log(ar)
-    return np.exp(-Z / sigma)
+    Z[Z - (eps2 - eps1) > 0] = np.inf
+    sigma = ((eps1 - eps2) ** 2) / np.log(ar)
+    return np.exp((Z**2) / sigma)
 
 
 def f1(x, y, eps=0, sigma=1000):
