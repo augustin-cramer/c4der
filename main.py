@@ -20,9 +20,9 @@ def standardize_cluster_format(converter) -> dict:
 if __name__ == "__main__":
 
     df = pd.read_csv("test_set/3D_500_area.csv", index_col=0)
+    df = df[df["T"] < 3320]
+
     df.Area = np.sqrt(df.Area)
-    start = datetime(year=2022, month=7, day=2, hour=9, minute=1)
-    df.loc[:, "T"] = df["T"].apply(lambda x: start + timedelta(seconds=x))
 
     ########### c4der Time ###########
     c4der_scan = c4der(
@@ -43,13 +43,16 @@ if __name__ == "__main__":
     
     df["labels"] = df["labels"].apply(lambda x: converter[x])
 
-    df = df[df.labels != -1]  # Get rid of the noise
+    #df = df[df.labels != -1]  # Get rid of the noise
+
+    start = datetime(year=2022, month=7, day=2, hour=9, minute=1)
+    #df.loc[:, "T"] = df["T"].apply(lambda x: start + timedelta(seconds=x))
 
     fig = px.scatter_3d(
         z=df["T"],
         y=df["X"],
         x=df["Y"],
-        color=df["labels"],
+        #color=df["labels"],
     )
 
     fig.show()
