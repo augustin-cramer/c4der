@@ -19,46 +19,44 @@ def standardize_cluster_format(converter) -> dict:
 
 if __name__ == "__main__":
 
-    df = pd.read_csv("test_set/3D_500_area.csv", index_col=0)
-    df = df[df["T"] < 3320]
-
-    df.Area = np.sqrt(df.Area)
-
+    df = pd.read_csv("test_set/20220627.csv", index_col=0)
+    df['rectangularity']  = df.lengths / df.widths
+    df['timestamps']  = pd.to_datetime(df['timestamps'] )
+    df['time_seconds'] = df['timestamps'].apply(lambda x : pd.Timedelta(x- df.loc[0,'timestamps']).total_seconds() )
     ########### c4der Time ###########
     c4der_scan = c4der(
-        50, -1, 70, 240, 10, spatial_weight_on_x=0.2, non_spatial_epss=0.1
+        50, -1, 70, 360, 10, spatial_weight_on_x=0.2, non_spatial_epss=0.1
     )
 
     c4der_scan.fit(
-        df[["X", "Y"]].to_numpy(),
-        df["T"].to_numpy(),
-        X_non_spatial=df["Area"].to_numpy(),
+        df[["x", "y"]].to_numpy(),
+        df['time_seconds'].to_numpy(),
+        #X_non_spatial=df["rectangularity"].to_numpy(),
     )
     df["labels"] = c4der_scan.labels_
 
     ###################################
 
-    converter = standardize_cluster_format((df.groupby("labels").count().X > 20))
+    converter = standardize_cluster_format((df.groupby("labels").count().x > 20))
     # Maybe look at cluster time_span instead of nb of points
     
     df["labels"] = df["labels"].apply(lambda x: converter[x])
 
     #df = df[df.labels != -1]  # Get rid of the noise
 
-    start = datetime(year=2022, month=7, day=2, hour=9, minute=1)
-    #df.loc[:, "T"] = df["T"].apply(lambda x: start + timedelta(seconds=x))
 
     fig = px.scatter_3d(
-        z=df["T"],
-        y=df["X"],
-        x=df["Y"],
-        #color=df["labels"],
+        z=df["timestamps"],
+        y=df["x"],
+        x=df["y"],
+        color=df["labels"],
     )
 
     fig.show()
 
-    print(f"Nombre de clients détectés :{len(df.labels.unique())}")
+    print(f"Nombre de clients détectés :{sum((df.labels.unique()!=-1).astype(int))}")
     for cluster in df.labels.unique():
-        start = min(df[df.labels == cluster]["T"])
-        end = max(df[df.labels == cluster]["T"])
-        print(f'{start.strftime("%H:%M")} -->  {end.strftime("%H:%M")}')
+        if cluster>=0:
+            start = min(df[df.labels == cluster]["timestamps"])
+            end = max(df[df.labels == cluster]["timestamps"])
+            print(f'{start.strftime("%H:%M")} -->  {end.strftime("%H:%M")}')

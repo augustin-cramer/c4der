@@ -132,7 +132,7 @@ class c4der:
         :return: The distance matrix
         """
 
-        time_dist = pdist(X_temporal.reshape(n_samples, 1), metric="euclidean")
+        time_dist = pdist(X_temporal.reshape(n_samples, 1), metric="cityblock")
         spatial_weighted_dist = np.sqrt(2) * pdist(
             X_spatial,
             metric="mahalanobis",
