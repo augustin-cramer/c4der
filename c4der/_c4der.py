@@ -1,4 +1,3 @@
-
 from typing import List, Optional, Union
 
 import numpy as np
@@ -10,7 +9,7 @@ def kernel(Z, eps1, eps2, ar=0.6) -> np.ndarray:
     """
     It takes a vector of values, and returns a vector of values, where each value is the result of
     applying the kernel function to the corresponding value in the input vector
-    
+
     :param Z: The input data, a numpy array of shape (n_samples, n_features)
     :param eps1: the energy of the first state
     :param eps2: the lower bound of the kernel
@@ -30,7 +29,7 @@ class c4der:
         spatial_eps_2: float,
         temporal_eps: float,
         min_samples: int,
-        non_spatial_epss: Union[float, List[float], None] = None,
+        non_spatial_epss: Union[float|str, List[float|str], None] = None,
         spatial_weight_on_x: float = 0.5,
         algorithm="auto",
         leaf_size=30,
@@ -57,11 +56,11 @@ class c4der:
         self.n_jobs = n_jobs
         self.labels: np.ndarray
 
-    def _evaluate_border_points(self, neighborhoods, final_dist ):
+    def _evaluate_border_points(self, neighborhoods, final_dist):
         """
         > If there are any points in the neighborhood that are further than `spatial_eps_1` away, then
         randomly reject some of them based on a kernel function
-        
+
         :param neighborhoods: list of lists of points in the neighborhood of each point
         :param final_dist: the distance matrix between all points
         """
@@ -83,12 +82,12 @@ class c4der:
                         )
                     ]
                     neighborhood = [el for el in neighborhood if el not in rejected]
-    
+
     def _get_neighborhoods(self, final_dist):
         """
         > The function takes in a distance matrix and returns a list of lists, where each list contains
         the indices of the neighbors of each point
-        
+
         :param final_dist: The distance matrix that we calculated earlier
         :return: The indices of the neighbors of each point.
         """
@@ -103,24 +102,28 @@ class c4der:
 
         neighbors_model.fit(final_dist)
 
-        return neighbors_model.radius_neighbors(
-            final_dist, return_distance=False
-        )
+        return neighbors_model.radius_neighbors(final_dist, return_distance=False)
 
-    def _compute_distances(self, n_samples : int,X_spatial: np.ndarray,X_temporal: np.ndarray,X_non_spatial: Optional[np.ndarray] = None) :
+    def _compute_distances(
+        self,
+        n_samples: int,
+        X_spatial: np.ndarray,
+        X_temporal: np.ndarray,
+        X_non_spatial: Optional[np.ndarray] = None,
+    ):
         """
         The function takes in the number of samples, the spatial, temporal and non-spatial data and
-        returns the distance matrix. 
-        
+        returns the distance matrix.
+
         The distance matrix is computed by first computing the time distance between the samples, then
-        the spatial distance between the samples and then the non-spatial distance between the samples. 
-        
+        the spatial distance between the samples and then the non-spatial distance between the samples.
+
         The time distance is computed using the Euclidean distance. The spatial distance is computed
         using the Mahalanobis distance. The non-spatial distance is computed using the Bray-Curtis
-        distance. 
-        
-        The spatial distance is weighted by the spatial weight on x. 
-        
+        distance.
+
+        The spatial distance is weighted by the spatial weight on x.
+
         :param n_samples: number of samples
         :type n_samples: int
         :param X_spatial: the spatial coordinates of the data points
@@ -146,25 +149,61 @@ class c4der:
         )
 
         if X_non_spatial is not None and type(self.non_spatial_epss) is not None:
-            if (
-                type(self.non_spatial_epss) is List
-            ):  
-                for i, eps in enumerate(self.non_spatial_epss):
-                    non_spatial_dist = pdist(X_non_spatial[:, i], metric="euclidean")
+            if type(self.non_spatial_epss) is list:
 
-                    filtered_dist = np.where(
-                        non_spatial_dist <= eps, filtered_dist, 2 * self.spatial_eps_2
-                    )
+                for i, eps in enumerate(self.non_spatial_epss):
+                    print(filtered_dist)
+                    if eps == "strict":
+                        non_spatial_dist = pdist(
+                            X_non_spatial[:, i].reshape(n_samples, 1),
+                            metric="cityblock",
+                        )
+                        filtered_dist = np.where(
+                            non_spatial_dist <= .5,
+                            filtered_dist,
+                            2 * self.spatial_eps_2,
+                        )
+
+                        
+
+                    else:
+                        non_spatial_dist = pdist(
+                            X_non_spatial[:, i].reshape(n_samples, 1),
+                            metric="euclidean",
+                        )
+
+                        filtered_dist = np.where(
+                            non_spatial_dist <= eps,
+                            filtered_dist,
+                            2 * self.spatial_eps_2,
+                        )
             else:
                 assert (
-                    type(self.non_spatial_epss) is float
+                    type(self.non_spatial_epss) is float or type(self.non_spatial_epss) is str
                 ), "Number of non spatial eps and actual inputed non spatial variables do not match"
-                non_spatial_dist = pdist(X_non_spatial.reshape(n_samples, 1), metric="braycurtis")
-                filtered_dist = np.where(
-                    non_spatial_dist <= self.non_spatial_epss,
-                    filtered_dist,
-                    2 * self.spatial_eps_2,
-                )
+                
+                if self.non_spatial_epss == 'strict':
+                    non_spatial_dist = pdist(
+                            X_non_spatial.reshape(n_samples, 1),
+                            metric="cityblock",
+                        )
+
+                    filtered_dist = np.where(
+                        non_spatial_dist <= .5,
+                        filtered_dist,
+                        2 * self.spatial_eps_2,
+                    )
+
+                else : 
+                    non_spatial_dist = pdist(
+                        X_non_spatial.reshape(n_samples, 1), metric="braycurtis"
+                    )
+
+                    filtered_dist = np.where(
+                        non_spatial_dist <= self.non_spatial_epss,
+                        filtered_dist,
+                        2 * self.spatial_eps_2,
+                    )
         return squareform(filtered_dist)
 
     def _cluster_contamination(self, core_samples, neighborhoods, n_samples):
@@ -174,11 +213,10 @@ class c4der:
         point
         :param n_samples: The number of samples (or total weight) in the dataset
         """
-        
+
         label_num = 0
         stack = []
         labels = np.full(n_samples, -1, dtype=np.intp)
-
 
         # Cluster diffusion
         for i in range(labels.shape[0]):
@@ -207,10 +245,7 @@ class c4der:
         self.core_sample_indices_ = np.where(core_samples)[0]
         self.labels_ = labels
 
-
-
     def fit(
-        
         self,
         X_spatial: np.ndarray,
         X_temporal: np.ndarray,
@@ -222,9 +257,9 @@ class c4der:
         point. Then, it creates a neighborhood for each point based on the distance between the points.
         The function then evaluates if the points are core points or not. If they are core points, the
         function clusters the points together.
-        
+
         :param X_spatial: spatial data (2D)
-        :type X_spatial: np.ndarray 
+        :type X_spatial: np.ndarray
         :param X_temporal: the temporal data
         :type X_temporal: np.ndarray
         :param X_non_spatial: Non spatial considerations (Area of the bounding boxes, etc ...)
@@ -234,7 +269,6 @@ class c4der:
 
         n_samples = X_spatial.shape[0]
 
-
         if n_samples != X_temporal.shape[0] or (
             X_non_spatial is not None and X_non_spatial.shape[0] != n_samples
         ):
@@ -243,15 +277,16 @@ class c4der:
         if X_spatial.shape[1] != 2:
             raise ValueError("X_spatial must have two coordinates per row")
 
-
-        # ""masked"" square matrix representing distance between point 
+        # ""masked"" square matrix representing distance between point
         # discriminated by time and non-spatial consideration
-        final_dist = self._compute_distances(n_samples, X_spatial, X_temporal,X_non_spatial)
+        final_dist = self._compute_distances(
+            n_samples, X_spatial, X_temporal, X_non_spatial
+        )
 
         # Efficient Indexation of points by neighborhoods (see scikit-learn)
         neighborhoods = self._get_neighborhoods(final_dist=final_dist)
 
-        #Evaluates if points between the two spatial bounds are added to the neighborhood or not
+        # Evaluates if points between the two spatial bounds are added to the neighborhood or not
         self._evaluate_border_points(neighborhoods=neighborhoods, final_dist=final_dist)
 
         # Number of neighbors for each point
@@ -261,10 +296,11 @@ class c4der:
         core_samples = np.asarray(n_neighbors >= self.min_samples, dtype=bool)
 
         # Cluster diffusion
-        self._cluster_contamination(core_samples=core_samples, neighborhoods=neighborhoods, n_samples=n_samples)
+        self._cluster_contamination(
+            core_samples=core_samples, neighborhoods=neighborhoods, n_samples=n_samples
+        )
 
         return self
 
-    def get_params(self) -> dict :
+    def get_params(self) -> dict:
         return vars(self)
-
