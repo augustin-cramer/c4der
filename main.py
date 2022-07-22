@@ -6,7 +6,7 @@ import pandas as pd
 import plotly.express as px
 
 from c4der._c4der import c4der
-from utils._utils import print_centre, standardize_cluster_format, get_mass_centers
+from utils._utils import print_centre, clusters_filtering, get_mass_centers
 
 import argparse
 
@@ -16,10 +16,10 @@ def main(
     min_samples_in_c: int = 10,
     min_timespan_minutes: int = 6,
     max_time: Optional[tuple[int, int]] = None,
-    spatial_eps_1=20,
+    spatial_eps_1=40,
     n_jobs: int = -1,
-    spatial_eps_2: int = 50,
-    temporal_eps: int = 240,
+    spatial_eps_2: int = 80,
+    temporal_eps: int = 180,
     min_samples: int = 5,
     spatial_weight_on_x: float = 0.01,
     non_spatial_epss: Union[float | str, List[float | str], None] = "strict",
@@ -75,13 +75,14 @@ def main(
         )
 
     df["labels"] = c4der_scan.labels_
+    cluster_info = c4der_scan.cluster_info
 
     ###################################
 
-    converter = standardize_cluster_format(
-        df, min_sample_in_cluster=min_samples_in_c, min_time_span=min_timespan
+    _filter = clusters_filtering(
+        cluster_info, min_sample_in_cluster=min_samples_in_c, min_time_span=min_timespan
     )
-    df["labels"] = df["labels"].apply(lambda x: converter[x])
+    df["labels"] = df["labels"].apply(lambda x: _filter[x])
 
     if clean_noise:
         df = df[df.labels != -1]  # Get rid of the noise
@@ -108,8 +109,6 @@ def main(
     if save_data:
         df.to_csv(f"{file_path.split('.')[0]}_treated.csv")
 
-    print(c4der_scan.cluster_info)
-
 
 if __name__ == "__main__":
 
@@ -117,10 +116,20 @@ if __name__ == "__main__":
     parser.add_argument("--filepath", type=str, default="test_set/20220628.csv")
     parser.add_argument("--h_max", type=int, default=14)
     parser.add_argument("--m_max", type=int, default=00)
-    parser.add_argument("--plot_fig", type=bool, default=False)
+    parser.add_argument(
+        "--plotfig", action=argparse.BooleanOptionalAction, default=False
+    )
+    parser.add_argument(
+        "--clean_noise", action=argparse.BooleanOptionalAction, default=False
+    )
     args = parser.parse_args()
     start = perf_counter()
     print_centre("################## c4der ################## \n")
-    main(file_path=args.filepath, max_time=(args.h_max, args.m_max), plot=args.plot_fig)
+    main(
+        file_path=args.filepath,
+        max_time=(args.h_max, args.m_max),
+        plot=args.plotfig,
+        clean_noise=args.clean_noise,
+    )
     print_centre(f"Execution time : {str((perf_counter()-start))[2:5]} ms  \n")
     print_centre("###########################################")

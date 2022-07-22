@@ -303,13 +303,15 @@ class c4der:
         )
         cluster_sizes = []
         cluster_time_span = []
-        cluster_variance = []
+
         cluster_variance_from_mc: None | list = []
         cluster_mean_point = []
         for cluster_num in np.unique(self.labels_):
             mask = np.where(self.labels_ == cluster_num)
             cluster_sizes.append(np.sum((self.labels_ == cluster_num).astype(int)))
-            cluster_time_span.append(timedelta(seconds = max(X_temporal[mask]) - min(X_temporal[mask])))
+            cluster_time_span.append(
+                timedelta(seconds=max(X_temporal[mask]) - min(X_temporal[mask]))
+            )
             mass_centers_pos = get_mass_centers_dist(X_spatial[:, 1])
             cluster_variance_from_mc.append(np.std(mass_centers_pos[mask]))
             cluster_mean_point.append(np.mean(X_spatial[mask], axis=0))
@@ -318,6 +320,7 @@ class c4der:
             "cluster_time_span": cluster_time_span,
             "cluster_variance_from_mc": cluster_variance_from_mc,
             "cluster_mean_point": cluster_mean_point,
+            "labels": list(np.unique(self.labels_)),
         }
         return self
 

@@ -9,23 +9,23 @@ def print_centre(s):
     print(s.center(shutil.get_terminal_size().columns))
 
 
-def standardize_cluster_format(
-    df: pd.DataFrame | pd.Series, min_sample_in_cluster: int, min_time_span: timedelta
-) -> dict:
-    i = 0
-    converter = {}
-    for k, v in (df.groupby("labels").count().x > min_sample_in_cluster).items():
-        start = min(df[df.labels == k]["timestamps"])
-        end = max(df[df.labels == k]["timestamps"])
-        time_ok = (end - start) >= min_time_span
+def clusters_filtering(cluster_info : dict, min_sample_in_cluster: int = 4, min_time_span: timedelta = timedelta(minutes=6), min_variance : float = 10
+) -> dict: 
+    k = 0
+    _filter = {}
+    for i, cluster_num in enumerate(cluster_info['labels']):
+        cluster_size_ok = cluster_info['cluster_sizes'][i] >= min_sample_in_cluster
+        time_ok = cluster_info['cluster_time_span'][i] >= min_time_span
+        variance_ok = cluster_info['cluster_variance_from_mc'][i] >= min_variance
 
-        if v and time_ok and k != -1:
-            converter[k] = i
-            i += 1
+
+        if cluster_size_ok and time_ok and variance_ok and cluster_num != -1:
+            _filter[cluster_num] = k
+            k += 1
         else:
-            converter[k] = -1
+            _filter[cluster_num] = -1
 
-    return converter
+    return _filter
 
 
 def get_mass_centers(y: pd.Series) -> np.ndarray:
