@@ -1,57 +1,14 @@
-from ast import parse
-import itertools
 from datetime import datetime, timedelta
 from time import perf_counter
 from typing import Optional, Union, List
 
-import numpy as np
 import pandas as pd
 import plotly.express as px
 
 from c4der._c4der import c4der
+from utils._utils import print_centre, standardize_cluster_format, get_mass_centers
 
 import argparse
-import shutil
-
-
-def print_centre(s):
-    print(s.center(shutil.get_terminal_size().columns))
-
-
-def standardize_cluster_format(
-    df: pd.DataFrame | pd.Series, min_sample_in_cluster: int, min_time_span: timedelta
-) -> dict:
-    i = 0
-    converter = {}
-    for k, v in (df.groupby("labels").count().x > min_sample_in_cluster).items():
-        start = min(df[df.labels == k]["timestamps"])
-        end = max(df[df.labels == k]["timestamps"])
-        time_ok = (end - start) >= min_time_span
-
-        if v and time_ok and k != -1:
-            converter[k] = i
-            i += 1
-        else:
-            converter[k] = -1
-
-    return converter
-
-
-def get_mass_centers_dist(y: pd.Series) -> pd.Series | pd.DataFrame:
-
-    count, divisions = np.histogram(y, bins=20)
-    sample_mean = np.mean(count)
-    frequencies = [
-        (((b - a) * (c - b) < 0) * (b > sample_mean), division)
-        for (a, b, c), division in zip(
-            zip(count, count[1:], count[2:]), itertools.pairwise(divisions[1:])
-        )
-    ]
-    mass_centers = np.array(
-        [el for is_mass_center, el in frequencies if is_mass_center]
-    )
-    mass_centers = np.mean(mass_centers, axis=1)
-    return y.apply(lambda x: np.argmin(np.abs(mass_centers - x)))
 
 
 def main(
@@ -93,7 +50,7 @@ def main(
         lambda x: pd.Timedelta(x - df.loc[0, "timestamps"]).total_seconds()
     )
 
-    df["mass_centers"] = get_mass_centers_dist(df.y)
+    df["mass_centers"] = get_mass_centers(df.y)
 
     ########### c4der Time ###########
     c4der_scan = c4der(
@@ -150,6 +107,8 @@ def main(
 
     if save_data:
         df.to_csv(f"{file_path.split('.')[0]}_treated.csv")
+
+    print(c4der_scan.cluster_info)
 
 
 if __name__ == "__main__":

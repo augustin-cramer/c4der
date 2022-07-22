@@ -1,8 +1,11 @@
+from turtle import position
 from typing import List, Optional, Union
 
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
 from sklearn.neighbors import NearestNeighbors
+
+from utils._utils import get_mass_centers_dist
 
 
 def kernel(Z, eps1, eps2, ar=0.6) -> np.ndarray:
@@ -29,7 +32,7 @@ class c4der:
         spatial_eps_2: float,
         temporal_eps: float,
         min_samples: int,
-        non_spatial_epss: Union[float|str, List[float|str], None] = None,
+        non_spatial_epss: Union[float | str, List[float | str], None] = None,
         spatial_weight_on_x: float = 0.5,
         algorithm="auto",
         leaf_size=30,
@@ -54,7 +57,7 @@ class c4der:
         self.non_spatial_epss = non_spatial_epss
         self.temporal_eps = temporal_eps
         self.n_jobs = n_jobs
-        self.labels: np.ndarray
+        self.labels_: np.ndarray
 
     def _evaluate_border_points(self, neighborhoods, final_dist):
         """
@@ -159,12 +162,10 @@ class c4der:
                             metric="cityblock",
                         )
                         filtered_dist = np.where(
-                            non_spatial_dist <= .5,
+                            non_spatial_dist <= 0.5,
                             filtered_dist,
                             2 * self.spatial_eps_2,
                         )
-
-                        
 
                     else:
                         non_spatial_dist = pdist(
@@ -179,28 +180,29 @@ class c4der:
                         )
             else:
                 assert (
-                    type(self.non_spatial_epss) is float or type(self.non_spatial_epss) is str
+                    type(self.non_spatial_epss) is float
+                    or type(self.non_spatial_epss) is str
                 ), "Number of non spatial eps and actual inputed non spatial variables do not match"
-                
-                if self.non_spatial_epss == 'strict':
-                    non_spatial_dist = pdist(
-                            X_non_spatial.reshape(n_samples, 1),
-                            metric="cityblock",
-                        )
 
-                    filtered_dist = np.where(
-                        non_spatial_dist <= .5,
-                        filtered_dist,
-                        2 * self.spatial_eps_2,
-                    )
-
-                else : 
+                if type(self.non_spatial_epss) is float:
                     non_spatial_dist = pdist(
                         X_non_spatial.reshape(n_samples, 1), metric="braycurtis"
                     )
 
                     filtered_dist = np.where(
                         non_spatial_dist <= self.non_spatial_epss,
+                        filtered_dist,
+                        2 * self.spatial_eps_2,
+                    )
+
+                else:
+                    non_spatial_dist = pdist(
+                        X_non_spatial.reshape(n_samples, 1),
+                        metric="cityblock",
+                    )
+
+                    filtered_dist = np.where(
+                        non_spatial_dist <= 0.5,
                         filtered_dist,
                         2 * self.spatial_eps_2,
                     )
@@ -299,8 +301,23 @@ class c4der:
         self._cluster_contamination(
             core_samples=core_samples, neighborhoods=neighborhoods, n_samples=n_samples
         )
-
+        cluster_sizes = []
+        cluster_time_span =[]
+        cluster_variance = []
+        cluster_variance_from_mc : None | list = []
+        cluster_mean_point = []
+        for cluster_num in np.unique(self.labels_):
+            mask = np.where(self.labels_==cluster_num)
+            cluster_sizes.append(np.sum((self.labels_==cluster_num).astype(int)))
+            cluster_time_span.append(np.max(X_temporal[mask]) - np.min(X_temporal[mask]))
+            mass_centers_pos = get_mass_centers_dist(X_spatial[:,1])
+            cluster_variance_from_mc.append(np.std(mass_centers_pos[mask]))
+            cluster_mean_point.append(np.mean(X_spatial[mask], axis=1))
+        self.cluster_info = {'cluster_sizes': cluster_sizes, 'cluster_time_span': cluster_time_span, 'cluster_variance_from_mc' : cluster_variance_from_mc, 'cluster_mean_point' : cluster_mean_point}
         return self
 
     def get_params(self) -> dict:
         return vars(self)
+
+    def get_cluster_info(self) -> dict:
+        return self.cluster_info
