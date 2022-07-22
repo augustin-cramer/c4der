@@ -301,9 +301,10 @@ class c4der:
         self._cluster_contamination(
             core_samples=core_samples, neighborhoods=neighborhoods, n_samples=n_samples
         )
+
+        #### Get info on clusters
         cluster_sizes = []
         cluster_time_span = []
-
         cluster_variance_from_mc: None | list = []
         cluster_mean_point = []
         for cluster_num in np.unique(self.labels_):
