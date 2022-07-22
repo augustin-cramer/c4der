@@ -1,5 +1,5 @@
-from turtle import position
 from typing import List, Optional, Union
+from datetime import timedelta
 
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
@@ -302,18 +302,23 @@ class c4der:
             core_samples=core_samples, neighborhoods=neighborhoods, n_samples=n_samples
         )
         cluster_sizes = []
-        cluster_time_span =[]
+        cluster_time_span = []
         cluster_variance = []
-        cluster_variance_from_mc : None | list = []
+        cluster_variance_from_mc: None | list = []
         cluster_mean_point = []
         for cluster_num in np.unique(self.labels_):
-            mask = np.where(self.labels_==cluster_num)
-            cluster_sizes.append(np.sum((self.labels_==cluster_num).astype(int)))
-            cluster_time_span.append(np.max(X_temporal[mask]) - np.min(X_temporal[mask]))
-            mass_centers_pos = get_mass_centers_dist(X_spatial[:,1])
+            mask = np.where(self.labels_ == cluster_num)
+            cluster_sizes.append(np.sum((self.labels_ == cluster_num).astype(int)))
+            cluster_time_span.append(timedelta(seconds = max(X_temporal[mask]) - min(X_temporal[mask])))
+            mass_centers_pos = get_mass_centers_dist(X_spatial[:, 1])
             cluster_variance_from_mc.append(np.std(mass_centers_pos[mask]))
-            cluster_mean_point.append(np.mean(X_spatial[mask], axis=1))
-        self.cluster_info = {'cluster_sizes': cluster_sizes, 'cluster_time_span': cluster_time_span, 'cluster_variance_from_mc' : cluster_variance_from_mc, 'cluster_mean_point' : cluster_mean_point}
+            cluster_mean_point.append(np.mean(X_spatial[mask], axis=0))
+        self.cluster_info = {
+            "cluster_sizes": cluster_sizes,
+            "cluster_time_span": cluster_time_span,
+            "cluster_variance_from_mc": cluster_variance_from_mc,
+            "cluster_mean_point": cluster_mean_point,
+        }
         return self
 
     def get_params(self) -> dict:
