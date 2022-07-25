@@ -89,10 +89,9 @@ def main(
 
     if plot:
         fig = px.scatter_3d(
-            z=df["timestamps"],
-            y=df["x"],
-            x=df["y"],
-            color=df["labels"],
+            df, z="timestamps", y="x", x="y", 
+            color="labels", 
+            title="Centroids position"
         )
 
         fig.show()

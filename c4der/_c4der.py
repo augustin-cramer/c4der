@@ -314,7 +314,7 @@ class c4der:
                 timedelta(seconds=max(X_temporal[mask]) - min(X_temporal[mask]))
             )
             mass_centers_pos = get_mass_centers_dist(X_spatial[:, 1])
-            cluster_variance_from_mc.append(np.std(mass_centers_pos[mask]))
+            cluster_variance_from_mc.append(np.sum(np.std(X_spatial[mask], axis=1)))
             cluster_mean_point.append(np.mean(X_spatial[mask], axis=0))
         self.cluster_info = {
             "cluster_sizes": cluster_sizes,
