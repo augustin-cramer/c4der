@@ -3,4 +3,5 @@
 .vscode
 .idea
 *.csv
-
+*.pdf
+*.mp4
