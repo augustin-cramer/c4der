@@ -3,4 +3,4 @@
 .vscode
 .idea
 *.csv
-
+notebooks/*.ipynb
