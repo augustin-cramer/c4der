@@ -1,5 +1,6 @@
 from typing import List, Optional, Union
 from datetime import timedelta
+import logging
 
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
@@ -8,7 +9,7 @@ from sklearn.neighbors import NearestNeighbors
 from utils._utils import get_mass_centers_dist
 
 
-def kernel(Z, eps1, eps2, ar=0.6) -> np.ndarray:
+def kernel(Z: np.ndarray, eps1: float, eps2: float, ar: float = 0.6) -> np.ndarray:
     """
     It takes a vector of values, and returns a vector of values, where each value is the result of
     applying the kernel function to the corresponding value in the input vector
@@ -38,6 +39,7 @@ class c4der:
         leaf_size=30,
     ) -> None:
 
+        # Must have spatial_eps_2 > spatial_eps_1
         if spatial_eps_1 > spatial_eps_2:
             self.spatial_eps_1 = spatial_eps_2
             self.spatial_eps_2 = spatial_eps_1
@@ -45,6 +47,7 @@ class c4der:
             self.spatial_eps_1 = spatial_eps_1
             self.spatial_eps_2 = spatial_eps_2
 
+        # Verify spatial_weight_on_x in ]0,1[
         if spatial_weight_on_x < 0 or spatial_weight_on_x > 1:
             raise ValueError(
                 "Parameter spatial_weight_on_x is degenerated. Please provide a value in (0,1). Default is .5"
@@ -61,29 +64,34 @@ class c4der:
 
     def _evaluate_border_points(self, neighborhoods, final_dist):
         """
-        > If there are any points in the neighborhood that are further than `spatial_eps_1` away, then
-        randomly reject some of them based on a kernel function
+        Randomly rejects points in the neighborhood further than `spatial_eps_1` using a 
+        kernel function
 
         :param neighborhoods: list of lists of points in the neighborhood of each point
         :param final_dist: the distance matrix between all points
         """
 
         for i, neighborhood in enumerate(neighborhoods):
-            if len(neighborhood) > 0:
+            if neighborhood:
+                # Take all ambiguous points apart
                 ambiguous_points = neighborhood[
                     final_dist[i, neighborhood] > self.spatial_eps_1
                 ]
-                if len(ambiguous_points) > 0:
+                if ambiguous_points:
+                    # Evaluate their kernel value
                     kernel_values = kernel(
                         final_dist[ambiguous_points, i],
                         eps1=self.spatial_eps_1,
                         eps2=self.spatial_eps_2,
                     )
+                    # Create a random list of rejected points
                     rejected = ambiguous_points[
                         np.where(
                             np.random.uniform(size=len(kernel_values)) > kernel_values
                         )
                     ]
+                    
+                    # Filter out the rejected points from neighborhood
                     neighborhood = [el for el in neighborhood if el not in rejected]
 
     def _get_neighborhoods(self, final_dist):
@@ -138,29 +146,36 @@ class c4der:
         :return: The distance matrix
         """
 
+        # Compute time distance
         time_dist = pdist(X_temporal.reshape(n_samples, 1), metric="cityblock")
+        
+        # Compute spatial distance
         spatial_weighted_dist = np.sqrt(2) * pdist(
             X_spatial,
             metric="mahalanobis",
             VI=np.diag([self.spatial_weight_on_x, 1 - self.spatial_weight_on_x]),
         )
 
+        # Give a high spatial_dist value to the points being too far apart time wise
         filtered_dist = np.where(
             time_dist <= self.temporal_eps,
             spatial_weighted_dist,
             2 * self.spatial_eps_2,
         )
 
+        # Compute  non_spatial_distance if necessary
         if X_non_spatial is not None and type(self.non_spatial_epss) is not None:
             if type(self.non_spatial_epss) is list:
 
                 for i, eps in enumerate(self.non_spatial_epss):
-                    print(filtered_dist)
+                    logging.debug(filtered_dist)
                     if eps == "strict":
                         non_spatial_dist = pdist(
                             X_non_spatial[:, i].reshape(n_samples, 1),
                             metric="cityblock",
                         )
+                        # Give a high spatial_dist value to the points being too 
+                        # far apart non spatial wise
                         filtered_dist = np.where(
                             non_spatial_dist <= 0.5,
                             filtered_dist,
@@ -173,6 +188,8 @@ class c4der:
                             metric="euclidean",
                         )
 
+                        # Give a high spatial_dist value to the points being too 
+                        # far apart non spatial wise
                         filtered_dist = np.where(
                             non_spatial_dist <= eps,
                             filtered_dist,
