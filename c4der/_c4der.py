@@ -286,6 +286,7 @@ class c4der:
         :return: The return is the self object.
         """
 
+        # Check if the inputs are valid
         n_samples = X_spatial.shape[0]
 
         if n_samples != X_temporal.shape[0] or (
