@@ -3,7 +3,6 @@ To plot and study kernel for c4der
 """
 
 
-
 import numpy as np
 import plotly.graph_objects as go
 
