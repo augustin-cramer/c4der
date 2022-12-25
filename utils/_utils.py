@@ -20,9 +20,13 @@ def clusters_filtering(
     _filter = {}
     for i, cluster_num in enumerate(cluster_info["labels"]):
         if cluster_num != -1:
-            cluster_size_ok = cluster_info["cluster_sizes"][i] >= min_sample_in_cluster
+            cluster_size_ok = (
+                cluster_info["cluster_sizes"][i] >= min_sample_in_cluster
+            )
             time_ok = cluster_info["cluster_time_span"][i] >= min_time_span
-            variance_ok = cluster_info["cluster_variance_from_mc"][i] >= min_variance
+            variance_ok = (
+                cluster_info["cluster_variance_from_mc"][i] >= min_variance
+            )
 
             if cluster_size_ok & time_ok & variance_ok:
                 _filter[cluster_num] = k

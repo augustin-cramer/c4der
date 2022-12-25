@@ -80,7 +80,9 @@ def main(
     ###################################
 
     _filter = clusters_filtering(
-        cluster_info, min_sample_in_cluster=min_samples_in_c, min_time_span=min_timespan
+        cluster_info,
+        min_sample_in_cluster=min_samples_in_c,
+        min_time_span=min_timespan,
     )
     df["labels"] = df["labels"].apply(lambda x: _filter[x])
 
@@ -89,9 +91,12 @@ def main(
 
     if plot:
         fig = px.scatter_3d(
-            df, z="timestamps", y="x", x="y", 
-            color="labels", 
-            title="Centroids position"
+            df,
+            z="timestamps",
+            y="x",
+            x="y",
+            color="labels",
+            title="Centroids position",
         )
 
         fig.show()
@@ -103,7 +108,9 @@ def main(
         if cluster >= 0:
             start = min(df[df.labels == cluster]["timestamps"])
             end = max(df[df.labels == cluster]["timestamps"])
-            print_centre(f'{start.strftime("%H:%M")} -->  {end.strftime("%H:%M")}')
+            print_centre(
+                f'{start.strftime("%H:%M")} -->  {end.strftime("%H:%M")}'
+            )
 
     if save_data:
         df.to_csv(f"{file_path.split('.')[0]}_treated.csv")
@@ -112,7 +119,9 @@ def main(
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--filepath", type=str, default="test_set/20220628.csv")
+    parser.add_argument(
+        "--filepath", type=str, default="test_set/20220628.csv"
+    )
     parser.add_argument("--h_max", type=int, default=14)
     parser.add_argument("--m_max", type=int, default=00)
     parser.add_argument(

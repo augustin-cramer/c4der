@@ -9,7 +9,9 @@ from sklearn.neighbors import NearestNeighbors
 from utils._utils import get_mass_centers_dist
 
 
-def kernel(Z: np.ndarray, eps1: float, eps2: float, ar: float = 0.6) -> np.ndarray:
+def kernel(
+    Z: np.ndarray, eps1: float, eps2: float, ar: float = 0.6
+) -> np.ndarray:
     """
     It takes a vector of values, and returns a vector of values, where each value is the result of
     applying the kernel function to the corresponding value in the input vector
@@ -64,7 +66,7 @@ class c4der:
 
     def _evaluate_border_points(self, neighborhoods, final_dist):
         """
-        Randomly rejects points in the neighborhood further than `spatial_eps_1` using a 
+        Randomly rejects points in the neighborhood further than `spatial_eps_1` using a
         kernel function
 
         :param neighborhoods: list of lists of points in the neighborhood of each point
@@ -87,12 +89,15 @@ class c4der:
                     # Create a random list of rejected points
                     rejected = ambiguous_points[
                         np.where(
-                            np.random.uniform(size=len(kernel_values)) > kernel_values
+                            np.random.uniform(size=len(kernel_values))
+                            > kernel_values
                         )
                     ]
-                    
+
                     # Filter out the rejected points from neighborhood
-                    neighborhood = [el for el in neighborhood if el not in rejected]
+                    neighborhood = [
+                        el for el in neighborhood if el not in rejected
+                    ]
 
     def _get_neighborhoods(self, final_dist):
         """
@@ -113,7 +118,9 @@ class c4der:
 
         neighbors_model.fit(final_dist)
 
-        return neighbors_model.radius_neighbors(final_dist, return_distance=False)
+        return neighbors_model.radius_neighbors(
+            final_dist, return_distance=False
+        )
 
     def _compute_distances(
         self,
@@ -148,12 +155,14 @@ class c4der:
 
         # Compute time distance
         time_dist = pdist(X_temporal.reshape(n_samples, 1), metric="cityblock")
-        
+
         # Compute spatial distance
         spatial_weighted_dist = np.sqrt(2) * pdist(
             X_spatial,
             metric="mahalanobis",
-            VI=np.diag([self.spatial_weight_on_x, 1 - self.spatial_weight_on_x]),
+            VI=np.diag(
+                [self.spatial_weight_on_x, 1 - self.spatial_weight_on_x]
+            ),
         )
 
         # Give a high spatial_dist value to the points being too far apart time wise
@@ -164,7 +173,10 @@ class c4der:
         )
 
         # Compute  non_spatial_distance if necessary
-        if X_non_spatial is not None and type(self.non_spatial_epss) is not None:
+        if (
+            X_non_spatial is not None
+            and type(self.non_spatial_epss) is not None
+        ):
             if type(self.non_spatial_epss) is list:
 
                 for i, eps in enumerate(self.non_spatial_epss):
@@ -174,7 +186,7 @@ class c4der:
                             X_non_spatial[:, i].reshape(n_samples, 1),
                             metric="cityblock",
                         )
-                        # Give a high spatial_dist value to the points being too 
+                        # Give a high spatial_dist value to the points being too
                         # far apart non spatial wise
                         filtered_dist = np.where(
                             non_spatial_dist <= 0.5,
@@ -188,7 +200,7 @@ class c4der:
                             metric="euclidean",
                         )
 
-                        # Give a high spatial_dist value to the points being too 
+                        # Give a high spatial_dist value to the points being too
                         # far apart non spatial wise
                         filtered_dist = np.where(
                             non_spatial_dist <= eps,
@@ -203,7 +215,8 @@ class c4der:
 
                 if type(self.non_spatial_epss) is float:
                     non_spatial_dist = pdist(
-                        X_non_spatial.reshape(n_samples, 1), metric="braycurtis"
+                        X_non_spatial.reshape(n_samples, 1),
+                        metric="braycurtis",
                     )
 
                     filtered_dist = np.where(
@@ -307,7 +320,9 @@ class c4der:
         neighborhoods = self._get_neighborhoods(final_dist=final_dist)
 
         # Evaluates if points between the two spatial bounds are added to the neighborhood or not
-        self._evaluate_border_points(neighborhoods=neighborhoods, final_dist=final_dist)
+        self._evaluate_border_points(
+            neighborhoods=neighborhoods, final_dist=final_dist
+        )
 
         # Number of neighbors for each point
         n_neighbors = np.array([len(neighbors) for neighbors in neighborhoods])
@@ -317,7 +332,9 @@ class c4der:
 
         # Cluster diffusion
         self._cluster_contamination(
-            core_samples=core_samples, neighborhoods=neighborhoods, n_samples=n_samples
+            core_samples=core_samples,
+            neighborhoods=neighborhoods,
+            n_samples=n_samples,
         )
 
         #### Get info on clusters
@@ -327,12 +344,18 @@ class c4der:
         cluster_mean_point = []
         for cluster_num in np.unique(self.labels_):
             mask = np.where(self.labels_ == cluster_num)
-            cluster_sizes.append(np.sum((self.labels_ == cluster_num).astype(int)))
+            cluster_sizes.append(
+                np.sum((self.labels_ == cluster_num).astype(int))
+            )
             cluster_time_span.append(
-                timedelta(seconds=max(X_temporal[mask]) - min(X_temporal[mask]))
+                timedelta(
+                    seconds=max(X_temporal[mask]) - min(X_temporal[mask])
+                )
             )
             mass_centers_pos = get_mass_centers_dist(X_spatial[:, 1])
-            cluster_variance_from_mc.append(np.sum(np.std(X_spatial[mask], axis=1)))
+            cluster_variance_from_mc.append(
+                np.sum(np.std(X_spatial[mask], axis=1))
+            )
             cluster_mean_point.append(np.mean(X_spatial[mask], axis=0))
         self.cluster_info = {
             "cluster_sizes": cluster_sizes,
