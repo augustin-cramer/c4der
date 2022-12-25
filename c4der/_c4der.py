@@ -64,7 +64,7 @@ class c4der:
         self.n_jobs = n_jobs
         self.labels_: np.ndarray
 
-    def _evaluate_border_points(self, neighborhoods, final_dist):
+    def _evaluate_border_points(self, neighborhoods: List[np.ndarray], final_dist: np.ndarray):
         """
         Randomly rejects points in the neighborhood further than `spatial_eps_1` using a
         kernel function
@@ -74,12 +74,12 @@ class c4der:
         """
 
         for i, neighborhood in enumerate(neighborhoods):
-            if neighborhood:
+            if len(neighborhood) > 0:
                 # Take all ambiguous points apart
                 ambiguous_points = neighborhood[
                     final_dist[i, neighborhood] > self.spatial_eps_1
                 ]
-                if ambiguous_points:
+                if len(ambiguous_points) > 0:
                     # Evaluate their kernel value
                     kernel_values = kernel(
                         final_dist[ambiguous_points, i],
